@@ -9,7 +9,7 @@ function same(a, b) {
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  const pass = process.env.ADMIN_PASSWORD;
+  const pass = process.env.azka;
   if (!pass) return res.status(500).json({ error: 'ADMIN_PASSWORD belum disetel' });
   try {
     const b = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {};
