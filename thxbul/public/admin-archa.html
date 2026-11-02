@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Admin</title>
+<style>
+:root{--bg:#fff4f8;--ink:#5a2a3d;--soft:#8a5a6c;--card:#fff;--line:#f6b8d0;--accent:#ee6fa0}
+@media (prefers-color-scheme:dark){:root{--bg:#2a1020;--ink:#ffe6f0;--soft:#e5b3c8;--card:#4a2236;--line:#7a3c58;--accent:#ff8fb8}}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+main{max-width:640px;margin:0 auto;padding:24px 16px 60px}
+h1{color:var(--accent);margin:0 0 14px}
+.card{background:var(--card);border:1.5px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px}
+input{width:100%;padding:12px;border:1.5px solid var(--line);border-radius:12px;font:inherit;background:var(--card);color:var(--ink);margin-bottom:10px}
+button{border:0;border-radius:999px;padding:10px 18px;background:var(--accent);color:#fff;font:inherit;font-weight:600;cursor:pointer}
+button.g{background:transparent;color:var(--accent);border:2px solid var(--accent)}
+.note{color:var(--soft);font-size:.88rem}.err{color:#d33;margin:6px 0}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.hidden{display:none}
+</style></head><body><main>
+<h1>Jawaban Pearl 💌</h1>
+<div id="login" class="card">
+  <input id="pw" type="password" placeholder="Password admin" autocomplete="current-password">
+  <button id="go">Masuk</button><div class="err" id="err"></div>
+</div>
+<div id="panel" class="hidden">
+  <div class="bar"><span class="note" id="count"></span><button class="g" id="refresh">Muat ulang</button><button class="g" id="csv">Simpan CSV</button></div>
+  <div id="list"></div>
+</div>
+</main>
+<script>
+var rows=[],pw='';
+var $=function(i){return document.getElementById(i)};
+function esc(s){var d=document.createElement('div');d.textContent=s==null?'':s;return d.innerHTML}
+async function load(){
+  $('err').textContent='';
+  try{
+    var r=await fetch('/api/answers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})});
+    var j=await r.json();
+    if(!r.ok){$('err').textContent=j.error||'Gagal';$('login').classList.remove('hidden');$('panel').classList.add('hidden');return}
+    rows=j.rows;$('login').classList.add('hidden');$('panel').classList.remove('hidden');render();
+  }catch(e){$('err').textContent='Tidak bisa terhubung ke server'}
+}
+function render(){
+  $('count').textContent=rows.length+' jawaban';
+  $('list').innerHTML=rows.length?rows.map(function(r){
+    return '<div class="card"><b>'+esc(r.moodEmoji)+' '+esc(r.moodLabel)+'</b><br>'+
+    (r.reasons&&r.reasons.length?'Alasan: '+esc(r.reasons.join(', '))+'<br>':'')+
+    (r.extra?'“'+esc(r.extra)+'”<br>':'')+
+    '<span class="note">'+esc(new Date(r.ts).toLocaleString('id-ID'))+'</span></div>'}).join(''):'<p class="note">Belum ada jawaban.</p>';
+}
+$('go').onclick=function(){pw=$('pw').value;load()};
+$('pw').addEventListener('keydown',function(e){if(e.key==='Enter'){pw=$('pw').value;load()}});
+$('refresh').onclick=load;
+$('csv').onclick=function(){
+  var q=function(v){return '"'+String(v==null?'':v).replace(/"/g,'""')+'"'};
+  var data='waktu,mood,alasan,cerita\n'+rows.map(function(r){return [new Date(r.ts).toLocaleString('id-ID'),r.moodEmoji+' '+r.moodLabel,(r.reasons||[]).join('; '),r.extra].map(q).join(',')}).join('\n');
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'text/csv'}));a.download='jawaban-pearl.csv';a.click();
+};
+</script></body></html>
